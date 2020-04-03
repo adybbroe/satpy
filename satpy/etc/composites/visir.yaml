@@ -269,6 +269,8 @@ composites:
       - night_fog
       - solar_zenith_angle
 
+  # NWCSAF/PPS and NWCSAF/Geo products:
+  # -----------------------------------
   precipitation_probability:
     compositor: !!python/name:satpy.composites.cloud_products.PrecipCloudsRGB
     prerequisites:
@@ -279,6 +281,7 @@ composites:
     standard_name: precipitation_probability
 
   cloudmask:
+    # NWCSAF Geo and PPS cloud mask:
     compositor: !!python/name:satpy.composites.PaletteCompositor
     prerequisites:
     - cma
@@ -286,6 +289,7 @@ composites:
     standard_name: cloudmask
 
   cloudmask_extended:
+    # NWCSAF PPS (extended cloud mask):
     compositor: !!python/name:satpy.composites.PaletteCompositor
     prerequisites:
     - cma_extended
@@ -293,6 +297,7 @@ composites:
     standard_name: cloudmask
 
   cloudmask_probability:
+    # NWCSAF PPS Cloud mask probability (CMaProb):
     compositor: !!python/name:satpy.composites.PaletteCompositor
     prerequisites:
     - cmaprob
@@ -300,6 +305,7 @@ composites:
     standard_name: cloudmask_probability
 
   cloudtype:
+    # NWCSAF Geo and PPS cloud type:
     compositor: !!python/name:satpy.composites.PaletteCompositor
     prerequisites:
     - ct
@@ -307,6 +313,7 @@ composites:
     standard_name: cloudtype
 
   cloud_top_height:
+    # NWCSAF Geo and PPS cloud type:
     compositor: !!python/name:satpy.composites.cloud_products.CloudTopHeightCompositor
     prerequisites:
     - ctth_alti
@@ -315,6 +322,7 @@ composites:
     standard_name: cloud_top_height
 
   cloud_top_pressure:
+    # NWCSAF Geo and PPS cloud type:
     compositor: !!python/name:satpy.composites.PaletteCompositor
     prerequisites:
     - ctth_pres
@@ -322,20 +330,33 @@ composites:
     standard_name: cloud_top_pressure
 
   cloud_top_temperature:
+    # NWCSAF Geo and PPS cloud type:
     compositor: !!python/name:satpy.composites.PaletteCompositor
     prerequisites:
     - ctth_tempe
     - ctth_tempe_pal
     standard_name: cloud_top_temperature
 
+
+
   cloud_top_phase:
+    # NWCSAF PPS (CPP) cloud top phase:
     compositor: !!python/name:satpy.composites.PaletteCompositor
     prerequisites:
     - cpp_phase
     - cpp_phase_pal
     standard_name: cloud_top_phase
 
+  cloud_top_phase:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - cmic_phase
+    - cmic_phase_pal
+    standard_name: cloud_top_phase
+
+
   cloud_drop_effective_radius:
+    # NWCSAF Geo and PPS cloud type:
     compositor: !!python/name:satpy.composites.PaletteCompositor
     prerequisites:
     - cpp_reff
@@ -343,18 +364,23 @@ composites:
     standard_name: cloud_drop_effective_radius
 
   cloud_optical_thickness:
+    # NWCSAF PPS (CPP) cloud optical thickness:
     compositor: !!python/name:satpy.composites.PaletteCompositor
     prerequisites:
     - cpp_cot
     - cpp_cot_pal
     standard_name: cloud_optical_thickness
 
+
   cloud_water_path:
+    # NWCSAF PPS (CPP) cloud water path:
     compositor: !!python/name:satpy.composites.PaletteCompositor
     prerequisites:
     - cpp_cwp
     - cpp_cwp_pal
     standard_name: cloud_water_path
+
+
 
   ice_water_path:
     compositor: !!python/name:satpy.composites.PaletteCompositor

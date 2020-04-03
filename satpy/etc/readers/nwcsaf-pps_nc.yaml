@@ -233,6 +233,7 @@ datasets:
   cpp_reff_pal:
     name: cpp_reff_pal
     file_type: nc_nwcsaf_cpp
+    scale_offset_dataset: cpp_reff
 
   cpp_cot:
     name: cpp_cot

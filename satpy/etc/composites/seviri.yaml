@@ -158,47 +158,7 @@ composites:
     - IR_108
     standard_name: fog
 
-  cloudmask:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
-    prerequisites:
-    - cma
-    - cma_pal
-    standard_name: cloudmask
 
-  cloudtype:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
-    prerequisites:
-    - ct
-    - ct_pal
-    standard_name: cloudtype
-
-  cloud_top_height:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
-    prerequisites:
-    - ctth_alti
-    - ctth_alti_pal
-    standard_name: cloud_top_height
-
-  cloud_top_pressure:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
-    prerequisites:
-    - ctth_pres
-    - ctth_pres_pal
-    standard_name: cloud_top_pressure
-
-  cloud_top_temperature:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
-    prerequisites:
-    - ctth_tempe
-    - ctth_tempe_pal
-    standard_name: cloud_top_temperature
-
-  cloud_top_phase:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
-    prerequisites:
-    - cmic_phase
-    - cmic_phase_pal
-    standard_name: cloud_top_phase
 
   cloud_drop_effective_radius:
     compositor: !!python/name:satpy.composites.PaletteCompositor
