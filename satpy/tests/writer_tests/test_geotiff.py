@@ -1,38 +1,26 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2017 Satpy developers
 #
-# Copyright (c) 2017 David Hoese
+# This file is part of satpy.
 #
-# Author(s):
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-#   David Hoese <david.hoese@ssec.wisc.edu>
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""Tests for the geotiff writer.
-"""
-import sys
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Tests for the geotiff writer."""
+
+import unittest
+from unittest import mock
+
 import numpy as np
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 
 class TestGeoTIFFWriter(unittest.TestCase):
@@ -52,10 +40,11 @@ class TestGeoTIFFWriter(unittest.TestCase):
             pass
 
     def _get_test_datasets(self):
-        """Helper function to create a single test dataset."""
-        import xarray as xr
-        import dask.array as da
+        """Create a single test dataset."""
         from datetime import datetime
+
+        import dask.array as da
+        import xarray as xr
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
             dims=('y', 'x'),
@@ -79,6 +68,7 @@ class TestGeoTIFFWriter(unittest.TestCase):
     def test_simple_delayed_write(self):
         """Test writing can be delayed."""
         import dask.array as da
+
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = self._get_test_datasets()
         w = GeoTIFFWriter(base_dir=self.base_dir)
@@ -99,9 +89,10 @@ class TestGeoTIFFWriter(unittest.TestCase):
 
     def test_colormap_write(self):
         """Test writing an image with a colormap."""
-        from satpy.writers.geotiff import GeoTIFFWriter
-        from trollimage.xrimage import XRImage
         from trollimage.colormap import spectral
+        from trollimage.xrimage import XRImage
+
+        from satpy.writers.geotiff import GeoTIFFWriter
         datasets = self._get_test_datasets()
         w = GeoTIFFWriter(base_dir=self.base_dir)
         # we'd have to customize enhancements to test this through
@@ -119,9 +110,29 @@ class TestGeoTIFFWriter(unittest.TestCase):
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = self._get_test_datasets()
         w = GeoTIFFWriter(base_dir=self.base_dir,
-                          enhancement_config=False,
+                          enhance=False,
                           dtype=np.float32)
         w.save_datasets(datasets)
+
+    def test_dtype_for_enhance_false(self):
+        """Test that dtype of dataset is used if parameters enhance=False and dtype=None."""
+        from satpy.writers.geotiff import GeoTIFFWriter
+        datasets = self._get_test_datasets()
+        w = GeoTIFFWriter(base_dir=self.base_dir, enhance=False)
+        with mock.patch('satpy.writers.XRImage.save') as save_method:
+            save_method.return_value = None
+            w.save_datasets(datasets, compute=False)
+            self.assertEqual(save_method.call_args[1]['dtype'], np.float64)
+
+    def test_dtype_for_enhance_false_and_given_dtype(self):
+        """Test that dtype of dataset is used if enhance=False and dtype=uint8."""
+        from satpy.writers.geotiff import GeoTIFFWriter
+        datasets = self._get_test_datasets()
+        w = GeoTIFFWriter(base_dir=self.base_dir, enhance=False, dtype=np.uint8)
+        with mock.patch('satpy.writers.XRImage.save') as save_method:
+            save_method.return_value = None
+            w.save_datasets(datasets, compute=False)
+            self.assertEqual(save_method.call_args[1]['dtype'], np.uint8)
 
     def test_fill_value_from_config(self):
         """Test fill_value coming from the writer config."""
@@ -134,10 +145,36 @@ class TestGeoTIFFWriter(unittest.TestCase):
             w.save_datasets(datasets, compute=False)
             self.assertEqual(save_method.call_args[1]['fill_value'], 128)
 
+    def test_tags(self):
+        """Test tags being added."""
+        from satpy.writers.geotiff import GeoTIFFWriter
+        datasets = self._get_test_datasets()
+        w = GeoTIFFWriter(tags={'test1': 1}, base_dir=self.base_dir)
+        w.info['fill_value'] = 128
+        with mock.patch('satpy.writers.XRImage.save') as save_method:
+            save_method.return_value = None
+            w.save_datasets(datasets, tags={'test2': 2}, compute=False)
+            called_tags = save_method.call_args[1]['tags']
+            self.assertDictEqual(called_tags, {'test1': 1, 'test2': 2})
 
-def suite():
-    """The test suite for this writer's tests."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGeoTIFFWriter))
-    return mysuite
+    def test_scale_offset(self):
+        """Test tags being added."""
+        from satpy.writers.geotiff import GeoTIFFWriter
+        datasets = self._get_test_datasets()
+        w = GeoTIFFWriter(tags={'test1': 1}, base_dir=self.base_dir)
+        w.info['fill_value'] = 128
+        with mock.patch('satpy.writers.XRImage.save') as save_method:
+            save_method.return_value = None
+            w.save_datasets(datasets, tags={'test2': 2}, compute=False, include_scale_offset=True)
+            called_include = save_method.call_args[1]['include_scale_offset_tags']
+            self.assertTrue(called_include)
+
+    def test_tiled_value_from_config(self):
+        """Test tiled value coming from the writer config."""
+        from satpy.writers.geotiff import GeoTIFFWriter
+        datasets = self._get_test_datasets()
+        w = GeoTIFFWriter(base_dir=self.base_dir)
+        with mock.patch('satpy.writers.XRImage.save') as save_method:
+            save_method.return_value = None
+            w.save_datasets(datasets, compute=False)
+            self.assertEqual(save_method.call_args[1]['tiled'], True)

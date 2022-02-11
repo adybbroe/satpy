@@ -2,6 +2,13 @@
 Composites
 ==========
 
+Composites are defined as arrays of data that are created by processing and/or
+combining one or multiple data arrays (prerequisites) together.
+
+Composites are generated in satpy using Compositor classes. The attributes of the
+resulting composites are usually a combination of the prerequisites' attributes and
+the key/values of the DataID used to identify it.
+
 Built-in Compositors
 ====================
 
@@ -20,7 +27,7 @@ General-use compositor code dealing with visible or infrared satellite
 data can be put in a configuration file called ``visir.yaml``. Composites
 that are specific to an instrument can be placed in YAML config files named
 accordingly (e.g., ``seviri.yaml`` or ``viirs.yaml``). See the
-`satpy repository <https://github.com/pytroll/satpy/tree/master/satpy/etc/composites>`_
+`satpy repository <https://github.com/pytroll/satpy/tree/main/satpy/etc/composites>`_
 for more examples.
 
 GenericCompositor
@@ -100,14 +107,35 @@ first composite will be placed on the day-side of the scene, and the
 second one on the night side.  The transition from day to night is
 done by calculating solar zenith angle (SZA) weighed average of the
 two composites.  The SZA can optionally be given as third dataset, and
-if not given, the angles will be calculated.  Width of the blending
-zone can be defined when initializing the compositor (default values
-shown in the example below).
+if not given, the angles will be calculated.  Three arguments are used
+to generate the image (default values shown in the example below).
+They can be defined when initializing the compositor::
+
+ - lim_low (float): lower limit of Sun zenith angle for the
+                    blending of the given channels
+ - lim_high (float): upper limit of Sun zenith angle for the
+                     blending of the given channels
+                     Together with `lim_low` they define the width
+                     of the blending zone
+ - day_night (string): "day_night" means both day and night portions will be kept
+                       "day_only" means only day portion will be kept
+                       "night_only" means only night portion will be kept
+
+Usage (with default values)::
 
     >>> from satpy.composites import DayNightCompositor
-    >>> compositor = DayNightCompositor("dnc", lim_low=85., lim_high=95.)
+    >>> compositor = DayNightCompositor("dnc", lim_low=85., lim_high=88., day_night="day_night")
     >>> composite = compositor([local_scene['true_color'],
     ...                         local_scene['night_fog']])
+
+As above, with `day_night` flag it is also available to use only
+a day product or only a night product and mask out (make transparent)
+the opposite portion of the image (night or day). The example below
+provides only a day product with night portion masked-out::
+
+    >>> from satpy.composites import DayNightCompositor
+    >>> compositor = DayNightCompositor("dnc", lim_low=85., lim_high=88., day_night="day_only")
+    >>> composite = compositor([local_scene['true_color'])
 
 RealisticColors
 ---------------
@@ -189,21 +217,67 @@ reflectance.
     >>> colorized_ir_clouds = local_scene['colorized_ir_clouds']
     >>> composite = compositor([vis_data, colorized_ir_clouds])
 
+StaticImageCompositor
+---------------------
+
+    :class:`StaticImageCompositor` can be used to read an image from disk
+    and used just like satellite data, including resampling and using as a
+    part of other composites.
+
+    >>> from satpy.composites import StaticImageCompositor
+    >>> compositor = StaticImageCompositor("static_image", filename="image.tif")
+    >>> composite = compositor()
+
+BackgroundCompositor
+--------------------
+
+    :class:`BackgroundCompositor` can be used to stack two composites
+    together.  If the composites don't have `alpha` channels, the
+    `background` is used where `foreground` has no data.  If `foreground`
+    has alpha channel, the `alpha` values are used to weight when blending
+    the two composites.
+
+    >>> from satpy import Scene
+    >>> from satpy.composites import BackgroundCompositor
+    >>> compositor = BackgroundCompositor()
+    >>> clouds = local_scene['ir_cloud_day']
+    >>> background = local_scene['overview']
+    >>> composite = compositor([clouds, background])
+
+CategoricalDataCompositor
+-------------------------
+
+:class:`CategoricalDataCompositor` can be used to recategorize categorical data. This is for example useful to
+combine comparable categories into a common category. The category remapping from `data` to `composite` is done
+using a look-up-table (`lut`)::
+
+    composite = [[lut[data[0,0]], lut[data[0,1]], lut[data[0,Nj]]],
+                 [[lut[data[1,0]], lut[data[1,1]], lut[data[1,Nj]],
+                 [[lut[data[Ni,0]], lut[data[Ni,1]], lut[data[Ni,Nj]]]
+
+Hence, `lut` must have a length that is greater than the maximum value in `data` in orer to avoid an `IndexError`.
+Below is an example on how to create a binary clear-sky/cloud mask from a pseodu cloud type product with six
+categories representing clear sky (cat1/cat5), cloudy features (cat2-cat4) and missing/undefined data (cat0)::
+
+    >>> cloud_type = local_scene['cloud_type']  # 0 - cat0, 1 - cat1, 2 - cat2, 3 - cat3, 4 - cat4, 5 - cat5,
+    # categories: 0    1  2  3  4  5
+    >>> lut = [np.nan, 0, 1, 1, 1, 0]
+    >>> compositor = CategoricalDataCompositor('binary_cloud_mask', lut=lut)
+    >>> composite = compositor([cloud_type])  # 0 - cat1/cat5, 1 - cat2/cat3/cat4, nan - cat0
+
+
 Creating composite configuration files
 ======================================
 
-To save the custom composite, the following procedure can be used:
-
-1. Create a custom directory for your custom configs.
-2. Set the environment variable ``PPP_CONFIG_DIR`` to this path.
-3. Write config files with your changes only (see examples below), pointing
-   to the (custom) module containing your composites. Generic compositors can
-   be placed in ``$PPP_CONFIG_DIR/composites/visir.yaml`` and instrument-
-   specific ones in ``$PPP_CONFIG_DIR/composites/<sensor>.yaml``. Don't forget
-   to add changes to the ``enhancement/generic.yaml`` file too.
-4. If custom compositing code was used then it must be importable by python.
-   If the code is not installed in your python environment then another option
-   it to add it to your ``PYTHONPATH``.
+To save the custom composite, follow the :ref:`component_configuration`
+documentation. Once your component configuration directory is created
+you can create your custom composite YAML configuration files.
+Compositors that can be used for multiple instruments can be placed in the
+generic ``$SATPY_CONFIG_PATH/composites/visir.yaml`` file. Composites that
+are specific to one sensor should be placed in
+``$SATPY_CONFIG_PATH/composites/<sensor>.yaml``. Custom enhancements for your new
+composites can be stored in ``$SATPY_CONFIG_PATH/enhancements/generic.yaml`` or
+``$SATPY_CONFIG_PATH/enhancements/<sensor>.yaml``.
 
 With that, you should be able to load your new composite directly. Example
 configuration files can be found in the satpy repository as well as a few
@@ -287,7 +361,7 @@ the day side, and another for the night side::
         - night_fog
       standard_name: natural_with_night_fog
 
-This compositor has two additional keyword arguments that can be
+This compositor has three additional keyword arguments that can be
 defined (shown with the default values, thus identical result as
 above)::
 
@@ -297,7 +371,8 @@ above)::
         - natural_color
         - night_fog
       lim_low: 85.0
-      lim_high: 95.0
+      lim_high: 88.0
+      day_night: "day_night"
       standard_name: natural_with_night_fog
 
 Defining other composites in-line
@@ -319,6 +394,63 @@ the built-in airmass composite::
           - wavelength: 10.8
       - wavelength: 6.2
       standard_name: airmass
+
+Using a pre-made image as a background
+--------------------------------------
+
+Below is an example composite config using
+:class:`StaticImageCompositor`, :class:`DayNightCompositor`,
+:class:`CloudCompositor` and :class:`BackgroundCompositor` to show how
+to create a composite with a blended day/night imagery as background
+for clouds.  As the images are in PNG format, and thus not
+georeferenced, the name of the area definition for the background
+images are given.  When using GeoTIFF images the `area` parameter can
+be left out.
+
+.. note::
+
+    The background blending uses the current time if there is no
+    timestamps in the image filenames.
+
+::
+
+    clouds_with_background:
+      compositor: !!python/name:satpy.composites.BackgroundCompositor
+      standard_name: clouds_with_background
+      prerequisites:
+        - ir_cloud_day
+        - compositor: !!python/name:satpy.composites.DayNightCompositor
+          prerequisites:
+            - static_day
+            - static_night
+
+    static_day:
+      compositor: !!python/name:satpy.composites.StaticImageCompositor
+      standard_name: static_day
+      filename: /path/to/day_image.png
+      area: euro4
+
+    static_night:
+      compositor: !!python/name:satpy.composites.StaticImageCompositor
+      standard_name: static_night
+      filename: /path/to/night_image.png
+      area: euro4
+
+To ensure that the images aren't auto-stretched and possibly altered,
+the following should be added to enhancement config (assuming 8-bit
+image) for both of the static images::
+
+    static_day:
+      standard_name: static_day
+      operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [0, 0, 0]
+          max_stretch: [255, 255, 255]
+
+.. _enhancing-the-images:
 
 Enhancing the images
 ====================
@@ -346,7 +478,7 @@ Enhancing the images
     - palettize
     - three_d_effect
     - btemp_threshold
-    
+
 .. todo::
 
     Should this be in another file/page?
@@ -376,7 +508,7 @@ And finally either show or save the image::
 
 As pointed out in the composite section, it is better to define
 frequently used enhancements in configuration files under
-``$PPP_CONFIG_DIR/enhancements/``.  The enhancements can either be in
+``$SATPY_CONFIG_PATH/enhancements/``.  The enhancements can either be in
 ``generic.yaml`` or instrument-specific file (e.g., ``seviri.yaml``).
 
 The above enhancement can be written (with the headers necessary for

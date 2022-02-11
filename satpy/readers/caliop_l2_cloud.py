@@ -1,28 +1,28 @@
-# Copyright (c) 2016
-# Author(s):
-
-#   Mikhail Itkin <itkin.m@gmail.com>
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2016 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+# type: ignore
+"""Interface to CALIOP L2 HDF4 cloud products."""
 
 import logging
 import os.path
 import re
-
 from datetime import datetime
+
 from pyhdf.SD import SD, SDC
 
 from satpy.dataset import Dataset
@@ -35,6 +35,7 @@ class HDF4BandReader(BaseFileHandler):
     """CALIOP v3 HDF4 reader."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Initialze file handler."""
         super(HDF4BandReader, self).__init__(filename,
                                              filename_info,
                                              filetype_info)
@@ -75,19 +76,19 @@ class HDF4BandReader(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Read data from file and return the corresponding projectables."""
-        if key.name in ['longitude', 'latitude']:
+        if key['name'] in ['longitude', 'latitude']:
             logger.debug('Reading coordinate arrays.')
 
             if self.lons is None or self.lats is None:
                 self.lons, self.lats = self.get_lonlats()
 
-            if key.name == 'latitude':
+            if key['name'] == 'latitude':
                 proj = Dataset(self.lats, id=key, **info)
             else:
                 proj = Dataset(self.lons, id=key, **info)
 
         else:
-            data = self.get_sds_variable(key.name)
+            data = self.get_sds_variable(key['name'])
             proj = Dataset(data, id=key, **info)
 
         return proj
@@ -106,8 +107,10 @@ class HDF4BandReader(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Get start time."""
         return self._start_time
 
     @property
     def end_time(self):
+        """Get end time."""
         return self._end_time

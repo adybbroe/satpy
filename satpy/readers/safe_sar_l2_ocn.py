@@ -1,25 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2019 Pytroll developers
-
-# Author(s):
-
-#   Trygve Aspenes <trygveas@met.no>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""SAFE SAR L2 OCN format reader
+# Copyright (c) 2019 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""SAFE SAR L2 OCN format reader.
 
 The OCN data contains various parameters, but mainly the wind speed and direction
 calculated from SAR data and input model data from ECMWF
@@ -31,11 +27,11 @@ See more at ESA webpage https://sentinel.esa.int/web/sentinel/ocean-wind-field-c
 
 import logging
 
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy import CHUNK_SIZE
-
 import numpy as np
 import xarray as xr
+
+from satpy import CHUNK_SIZE
+from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +40,7 @@ class SAFENC(BaseFileHandler):
     """Measurement file reader."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Init the file reader."""
         super(SAFENC, self).__init__(filename, filename_info,
                                      filetype_info)
 
@@ -73,33 +70,17 @@ class SAFENC(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if key.name in ['owiLat', 'owiLon']:
+        if key['name'] in ['owiLat', 'owiLon']:
             if self.lons is None or self.lats is None:
                 self.lons = self.nc['owiLon']
                 self.lats = self.nc['owiLat']
-            if key.name == 'owiLat':
+            if key['name'] == 'owiLat':
                 res = self.lats
             else:
                 res = self.lons
             res.attrs = info
         else:
-            res = self.nc[key.name]
-            if key.name in ['owiHs', 'owiWl', 'owiDirmet']:
-                res = xr.DataArray(res, dims=['y', 'x', 'oswPartitions'])
-            elif key.name in ['owiNrcs', 'owiNesz', 'owiNrcsNeszCorr']:
-                res = xr.DataArray(res, dims=['y', 'x', 'oswPolarisation'])
-            elif key.name in ['owiPolarisationName']:
-                res = xr.DataArray(res, dims=['owiPolarisation'])
-            elif key.name in ['owiCalConstObsi', 'owiCalConstInci']:
-                res = xr.DataArray(res, dims=['owiIncSize'])
-            elif key.name.startswith('owi'):
-                res = xr.DataArray(res, dims=['y', 'x'])
-            else:
-                res = xr.DataArray(res, dims=['y', 'x'])
-            res.attrs.update(info)
-            if '_FillValue' in res.attrs:
-                res = res.where(res != res.attrs['_FillValue'])
-                res.attrs['_FillValue'] = np.nan
+            res = self._get_data_channels(key, info)
 
         if 'missionName' in self.nc.attrs:
             res.attrs.update({'platform_name': self.nc.attrs['missionName']})
@@ -110,6 +91,26 @@ class SAFENC(BaseFileHandler):
         if not self._shape:
             self._shape = res.shape
 
+        return res
+
+    def _get_data_channels(self, key, info):
+        res = self.nc[key['name']]
+        if key['name'] in ['owiHs', 'owiWl', 'owiDirmet']:
+            res = xr.DataArray(res, dims=['y', 'x', 'oswPartitions'])
+        elif key['name'] in ['owiNrcs', 'owiNesz', 'owiNrcsNeszCorr']:
+            res = xr.DataArray(res, dims=['y', 'x', 'oswPolarisation'])
+        elif key['name'] in ['owiPolarisationName']:
+            res = xr.DataArray(res, dims=['owiPolarisation'])
+        elif key['name'] in ['owiCalConstObsi', 'owiCalConstInci']:
+            res = xr.DataArray(res, dims=['owiIncSize'])
+        elif key['name'].startswith('owi'):
+            res = xr.DataArray(res, dims=['y', 'x'])
+        else:
+            res = xr.DataArray(res, dims=['y', 'x'])
+        res.attrs.update(info)
+        if '_FillValue' in res.attrs:
+            res = res.where(res != res.attrs['_FillValue'])
+            res.attrs['_FillValue'] = np.nan
         return res
 
     @property

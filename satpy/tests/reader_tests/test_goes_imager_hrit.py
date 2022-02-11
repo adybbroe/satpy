@@ -1,47 +1,45 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2018 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""The hrit msg reader tests package."""
 
-# Copyright (c) 2018 Martin Raspaud
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""The hrit msg reader tests package.
-"""
-
-import sys
 import datetime
+import unittest
+from unittest import mock
+
 import numpy as np
 from xarray import DataArray
-from satpy.readers.goes_imager_hrit import (make_gvar_float, make_sgs_time,
-                                            HRITGOESPrologueFileHandler, sgs_time,
-                                            HRITGOESFileHandler)
 
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from satpy.readers.goes_imager_hrit import (
+    ALTITUDE,
+    HRITGOESFileHandler,
+    HRITGOESPrologueFileHandler,
+    make_gvar_float,
+    make_sgs_time,
+    sgs_time,
+)
+from satpy.tests.utils import make_dataid
 
 
 class TestGVARFloat(unittest.TestCase):
+    """GVAR float tester."""
+
     def test_fun(self):
+        """Test function."""
         test_data = [(-1.0, b"\xbe\xf0\x00\x00"),
                      (-0.1640625, b"\xbf\xd6\x00\x00"),
                      (0.0, b"\x00\x00\x00\x00"),
@@ -55,7 +53,10 @@ class TestGVARFloat(unittest.TestCase):
 
 
 class TestMakeSGSTime(unittest.TestCase):
+    """SGS Time tester."""
+
     def test_fun(self):
+        """Encode the test time."""
         # 2018-129 (may 9th), 21:33:27.999
         tcds = np.array([(32, 24, 18, 146, 19, 50, 121, 153)], dtype=sgs_time)
         expected = datetime.datetime(2018, 5, 9, 21, 33, 27, 999000)
@@ -128,10 +129,11 @@ class TestHRITGOESFileHandler(unittest.TestCase):
 
     @mock.patch('satpy.readers.goes_imager_hrit.HRITFileHandler.__init__')
     def setUp(self, new_fh_init):
-        """Setup the hrit file handler for testing."""
-        mda = {'projection_parameters': {},
+        """Set up the hrit file handler for testing."""
+        blob = '$HALFTONE:=10\r\n_NAME:=albedo\r\n_UNIT:=percent\r\n0:=0.0\r\n1023:=100.0\r\n'.encode()
+        mda = {'projection_parameters': {'SSP_longitude': -123.0},
                'spectral_channel_id': 1,
-               'image_data_function': '$HALFTONE:=10\r\n_NAME:=albedo\r\n_UNIT:=percent\r\n0:=0.0\r\n1023:=100.0\r\n'}
+               'image_data_function': blob}
         HRITGOESFileHandler.filename = 'filename'
         HRITGOESFileHandler.mda = mda
         self.prologue = mock.MagicMock()
@@ -139,38 +141,28 @@ class TestHRITGOESFileHandler(unittest.TestCase):
         self.reader = HRITGOESFileHandler('filename', {}, {}, self.prologue)
 
     def test_init(self):
-
+        """Test the init."""
+        blob = '$HALFTONE:=10\r\n_NAME:=albedo\r\n_UNIT:=percent\r\n0:=0.0\r\n1023:=100.0\r\n'.encode()
         mda = {'spectral_channel_id': 1,
                'projection_parameters': {'SSP_longitude': 100.1640625},
-               'image_data_function': '$HALFTONE:=10\r\n_NAME:=albedo\r\n_UNIT:=percent\r\n0:=0.0\r\n1023:=100.0\r\n'}
+               'image_data_function': blob}
         self.assertEqual(self.reader.mda, mda)
 
     @mock.patch('satpy.readers.goes_imager_hrit.HRITFileHandler.get_dataset')
     def test_get_dataset(self, base_get_dataset):
-        key = mock.MagicMock()
-        key.calibration = 'reflectance'
+        """Test get_dataset."""
+        key = make_dataid(name="CH1", calibration='reflectance')
         base_get_dataset.return_value = DataArray(np.arange(25).reshape(5, 5))
         res = self.reader.get_dataset(key, {})
-        expected = np.array([[0., 0.097752, 0.195503, 0.293255, 0.391007],
+        expected = np.array([[np.nan, 0.097752, 0.195503, 0.293255, 0.391007],
                              [0.488759, 0.58651, 0.684262, 0.782014, 0.879765],
                              [0.977517, 1.075269, 1.173021, 1.270772, 1.368524],
                              [1.466276, 1.564027, 1.661779, 1.759531, 1.857283],
                              [1.955034, 2.052786, 2.150538, 2.248289, 2.346041]])
 
-        self.assertTrue(np.allclose(res.values, expected))
+        self.assertTrue(np.allclose(res.values, expected, equal_nan=True))
         self.assertEqual(res.attrs['units'], '%')
-
-
-def suite():
-    """The test suite for test_scene.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHRITGOESPrologueFileHandler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGVARFloat))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestMakeSGSTime))
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()
+        self.assertDictEqual(res.attrs['orbital_parameters'],
+                             {'projection_longitude': self.reader.mda['projection_parameters']['SSP_longitude'],
+                              'projection_latitude': 0.0,
+                              'projection_altitude': ALTITUDE})

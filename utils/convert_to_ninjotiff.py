@@ -1,22 +1,21 @@
-# Author(s):
-#   Lorenzo Clementi <lorenzo.clementi@meteoswiss.ch>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2017-2019 Satpy developers
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
+# This file is part of satpy.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-"""
-First version of a simple command line too that converts an
-image into a NinJo Tiff file.
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Simple command line too that converts an image into a NinJo Tiff file.
 
 NinJo Tiff metadata can be passed as command line input or
 through a config file (an example is given in the ninjo-cmd.yaml
@@ -27,18 +26,19 @@ areas configuration file (located in $PPP_CONFIG_DIR).
 
 """
 
+import argparse
 import os
 
-from satpy.utils import debug_on
+import yaml
 
 from satpy import Scene
-from mpop.projector import get_area_def
-import argparse
-import yaml
+from satpy.pyresample import get_area_def
+from satpy.utils import debug_on
+
 try:
     from yaml import UnsafeLoader
 except ImportError:
-    from yaml import Loader as UnsafeLoader
+    from yaml import Loader as UnsafeLoader  # type: ignore
 
 
 debug_on()
@@ -68,7 +68,7 @@ if (args.cfg is not None):
         cfg = yaml.load(ymlfile, Loader=UnsafeLoader)
 
 narea = get_area_def(args.areadef)
-global_data = Scene(sensor="images", reader="generic_image", area=narea)
+global_data = Scene(reader="generic_image")
 global_data.load(['image'])
 
 global_data['image'].info['area'] = narea

@@ -1,35 +1,26 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2017 Satpy developers
 #
-# Copyright (c) 2017 David Hoese
+# This file is part of satpy.
 #
-# Author(s):
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-#   David Hoese <david.hoese@ssec.wisc.edu>
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""Tests for the CF writer.
-"""
-import sys
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Tests for the simple image writer."""
+import unittest
 
 
 class TestPillowWriter(unittest.TestCase):
+    """Test Pillow/PIL writer."""
 
     def setUp(self):
         """Create temporary directory to save files to."""
@@ -47,9 +38,10 @@ class TestPillowWriter(unittest.TestCase):
     @staticmethod
     def _get_test_datasets():
         """Create DataArray for testing."""
-        import xarray as xr
-        import dask.array as da
         from datetime import datetime
+
+        import dask.array as da
+        import xarray as xr
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
             dims=('y', 'x'),
@@ -73,8 +65,9 @@ class TestPillowWriter(unittest.TestCase):
     def test_simple_delayed_write(self):
         """Test writing datasets with delayed computation."""
         from dask.delayed import Delayed
-        from satpy.writers.simple_image import PillowWriter
+
         from satpy.writers import compute_writer_results
+        from satpy.writers.simple_image import PillowWriter
         datasets = self._get_test_datasets()
         w = PillowWriter(base_dir=self.base_dir)
         res = w.save_datasets(datasets, compute=False)
@@ -82,11 +75,3 @@ class TestPillowWriter(unittest.TestCase):
             self.assertIsInstance(r__, Delayed)
             r__.compute()
         compute_writer_results(res)
-
-
-def suite():
-    """The test suite for this writer's tests."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestPillowWriter))
-    return mysuite

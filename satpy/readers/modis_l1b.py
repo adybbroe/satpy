@@ -1,47 +1,56 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2014, 2017.
-
-# SMHI,
-# Folkborgsvägen 1,
-# Norrköping,
-# Sweden
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   Ronald Scheirer <ronald.scheirer@smhi.se>
-#   Adam Dybbroe <adam.dybbroe@smhi.se>
-
+# Copyright (c) 2010-2017 Satpy developers
+#
 # This file is part of satpy.
-
+#
 # satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
+#
 # satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Interface to Modis level 1b format.
-http://www.icare.univ-lille1.fr/wiki/index.php/MODIS_geolocation
-http://www.sciencedirect.com/science?_ob=MiamiImageURL&_imagekey=B6V6V-4700BJP-\
-3-27&_cdi=5824&_user=671124&_check=y&_orig=search&_coverDate=11%2F30%2F2002&vie\
-w=c&wchp=dGLzVlz-zSkWz&md5=bac5bc7a4f08007722ae793954f1dd63&ie=/sdarticle.pdf
-"""
+"""Modis level 1b hdf-eos format reader.
 
+Introduction
+------------
+
+The ``modis_l1b`` reader reads and calibrates Modis L1 image data in hdf-eos format. Files often have
+a pattern similar to the following one:
+
+.. parsed-literal::
+    M[O/Y]D02[1/H/Q]KM.A[date].[time].[collection].[processing_time].hdf
+
+Other patterns where "collection" and/or "proccessing_time" are missing might also work
+(see the readers yaml file for details). Geolocation files (MOD03) are also supported.
+
+
+Geolocation files
+-----------------
+
+For the 1km data (mod021km) geolocation files (mod03) are optional. If not given to the reader
+1km geolocations will be interpolated from the 5km geolocation contained within the file.
+
+For the 500m and 250m data geolocation files are needed.
+
+
+References:
+    - Modis gelocation description: http://www.icare.univ-lille1.fr/wiki/index.php/MODIS_geolocation
+"""
 import logging
 
 import numpy as np
-
 import xarray as xr
+
 from satpy import CHUNK_SIZE
-from satpy.readers.hdfeos_base import HDFEOSBaseFileReader, HDFEOSGeoReader
 from satpy.readers.hdf4_utils import from_sds
+from satpy.readers.hdfeos_base import HDFEOSBaseFileReader, HDFEOSGeoReader
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +63,7 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
            "H": 500}
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Init the file handler."""
         HDFEOSBaseFileReader.__init__(self, filename, filename_info, filetype_info)
 
         ds = self.metadata['INVENTORYMETADATA'][
@@ -71,13 +81,7 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
                   'EV_500_RefSB'],
             250: ['EV_250_RefSB']}
 
-        platform_name = self.metadata['INVENTORYMETADATA']['ASSOCIATEDPLATFORMINSTRUMENTSENSOR'][
-            'ASSOCIATEDPLATFORMINSTRUMENTSENSORCONTAINER']['ASSOCIATEDPLATFORMSHORTNAME']['VALUE']
-
-        info.update({'platform_name': 'EOS-' + platform_name})
-        info.update({'sensor': 'modis'})
-
-        if self.resolution != key.resolution:
+        if self.resolution != key['resolution']:
             return
 
         datasets = datadict[self.resolution]
@@ -88,7 +92,7 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
 
             # get the relative indices of the desired channel
             try:
-                index = band_names.index(key.name)
+                index = band_names.index(key['name'])
             except ValueError:
                 continue
             uncertainty = self.sd.select(dataset + "_Uncert_Indexes")
@@ -120,21 +124,21 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
             array = array.where(array <= np.float32(valid_range[1]))
             array = array.where(from_sds(uncertainty, chunks=CHUNK_SIZE)[index, :, :] < 15)
 
-            if key.calibration == 'brightness_temperature':
-                projectable = calibrate_bt(array, var_attrs, index, key.name)
+            if key['calibration'] == 'brightness_temperature':
+                projectable = calibrate_bt(array, var_attrs, index, key['name'])
                 info.setdefault('units', 'K')
                 info.setdefault('standard_name', 'toa_brightness_temperature')
-            elif key.calibration == 'reflectance':
+            elif key['calibration'] == 'reflectance':
                 projectable = calibrate_refl(array, var_attrs, index)
                 info.setdefault('units', '%')
                 info.setdefault('standard_name',
                                 'toa_bidirectional_reflectance')
-            elif key.calibration == 'radiance':
+            elif key['calibration'] == 'radiance':
                 projectable = calibrate_radiance(array, var_attrs, index)
                 info.setdefault('units', var_attrs.get('radiance_units'))
                 info.setdefault('standard_name',
                                 'toa_outgoing_radiance_per_unit_wavelength')
-            elif key.calibration == 'counts':
+            elif key['calibration'] == 'counts':
                 projectable = calibrate_counts(array, var_attrs, index)
                 info.setdefault('units', 'counts')
                 info.setdefault('standard_name', 'counts')  # made up
@@ -143,8 +147,8 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
                                  "key: {}".format(key))
             projectable.attrs = info
 
-            # if ((platform_name == 'Aqua' and key.name in ["6", "27", "36"]) or
-            #         (platform_name == 'Terra' and key.name in ["29"])):
+            # if ((platform_name == 'Aqua' and key['name'] in ["6", "27", "36"]) or
+            #         (platform_name == 'Terra' and key['name'] in ["29"])):
             #     height, width = projectable.shape
             #     row_indices = projectable.mask.sum(1) == width
             #     if row_indices.sum() != height:
@@ -171,6 +175,7 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
             #         satscene[band].area = geometry.SwathDefinition(
             #             lons=satscene[band].area.lons[indices, :],
             #             lats=satscene[band].area.lats[indices, :])
+            self._add_satpy_metadata(key, projectable)
             return projectable
 
 
@@ -178,11 +183,13 @@ class MixedHDFEOSReader(HDFEOSGeoReader, HDFEOSBandReader):
     """A file handler for the files that have both regular bands and geographical information in them."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Init the file handler."""
         HDFEOSGeoReader.__init__(self, filename, filename_info, filetype_info)
         HDFEOSBandReader.__init__(self, filename, filename_info, filetype_info)
 
     def get_dataset(self, key, info):
-        if key.name in HDFEOSGeoReader.DATASET_NAMES:
+        """Get the dataset."""
+        if key['name'] in HDFEOSGeoReader.DATASET_NAMES:
             return HDFEOSGeoReader.get_dataset(self, key, info)
         return HDFEOSBandReader.get_dataset(self, key, info)
 

@@ -1,25 +1,23 @@
-#!/usr/bin/python
-# Copyright (c) 2019.
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2019 Satpy developers
 #
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Tests for the HDF-EOS base functionality."""
 
-# Author(s):
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-#
 import unittest
-
 
 nrt_mda = '''GROUP                  = INVENTORYMETADATA
   GROUPTYPE            = MASTERGROUP
@@ -669,13 +667,16 @@ END
 
 
 class TestReadMDA(unittest.TestCase):
+    """Test reading metadata."""
 
     def test_read_mda(self):
+        """Test reading basic metadata."""
         from satpy.readers.hdfeos_base import HDFEOSBaseFileReader
         res = HDFEOSBaseFileReader.read_mda(nrt_mda)
         self.assertDictEqual(res, nrt_mda_dict)
 
     def test_read_mda_geo_resolution(self):
+        """Test reading geo resolution."""
         from satpy.readers.hdfeos_base import HDFEOSGeoReader
         resolution_l1b = HDFEOSGeoReader.read_geo_resolution(
             HDFEOSGeoReader.read_mda(metadata_modisl1b)
@@ -685,16 +686,3 @@ class TestReadMDA(unittest.TestCase):
             HDFEOSGeoReader.read_mda(metadata_modisl2)
         )
         self.assertEqual(resolution_l2, 5000)
-
-
-def suite():
-    """The test suite."""
-    loader = unittest.TestLoader()
-    my_suite = unittest.TestSuite()
-    my_suite.addTest(loader.loadTestsFromTestCase(TestReadMDA))
-
-    return my_suite
-
-
-if __name__ == '__main__':
-    unittest.main()

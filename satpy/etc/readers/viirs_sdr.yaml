@@ -3,7 +3,9 @@ reader:
   description: VIIRS SDR Reader
   reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRReader
   sensors: [viirs]
-  default_channels:
+  # file pattern keys to sort files by with 'satpy.utils.group_files'
+  # by default, don't use start_time group files (only orbit and platform)
+  group_keys: ['orbit', 'platform_shortname']
 
 datasets:
   i_lon:
@@ -12,48 +14,54 @@ datasets:
     file_type: generic_file
     dataset_groups: [GITCO, GIMGO]
     file_key: All_Data/{dataset_group}_All/Longitude
-    units: "degrees"
+    file_units: "degrees_east"
     standard_name: longitude
+    coordinates: [i_longitude, i_latitude]
   i_lat:
     name: i_latitude
     resolution: 371
     file_type: generic_file
     dataset_groups: [GITCO, GIMGO]
     file_key: All_Data/{dataset_group}_All/Latitude
-    units: "degrees"
+    file_units: "degrees_north"
     standard_name: latitude
+    coordinates: [i_longitude, i_latitude]
   m_lon:
     name: m_longitude
     resolution: 742
     file_type: generic_file
     dataset_groups: [GMTCO, GMODO]
     file_key: All_Data/{dataset_group}_All/Longitude
-    units: "degrees"
+    file_units: "degrees_east"
     standard_name: longitude
+    coordinates: [m_longitude, m_latitude]
   m_lat:
     name: m_latitude
     resolution: 742
     file_type: generic_file
     dataset_groups: [GMTCO, GMODO]
     file_key: All_Data/{dataset_group}_All/Latitude
-    units: "degrees"
+    file_units: "degrees_north"
     standard_name: latitude
+    coordinates: [m_longitude, m_latitude]
   dnb_lon:
     name: dnb_longitude
     resolution: 743
     file_type: generic_file
     dataset_groups: [GDNBO]
     file_key: All_Data/{dataset_group}_All/Longitude
-    units: "degrees"
+    file_units: "degrees_east"
     standard_name: longitude
+    coordinates: [dnb_longitude, dnb_latitude]
   dnb_lat:
     name: dnb_latitude
     resolution: 743
     file_type: generic_file
     dataset_groups: [GDNBO]
     file_key: All_Data/{dataset_group}_All/Latitude
-    units: "degrees"
+    file_units: "degrees_north"
     standard_name: latitude
+    coordinates: [dnb_longitude, dnb_latitude]
   I01:
     name: I01
     wavelength: [0.600, 0.640, 0.680]
@@ -65,10 +73,11 @@ datasets:
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        file_units: "1"
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        file_units: W m-2 um-1 sr-1
   I02:
     name: I02
     wavelength: [0.845, 0.865, 0.884]
@@ -80,10 +89,11 @@ datasets:
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        file_units: "1"
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        file_units: W m-2 um-1 sr-1
   I03:
     name: I03
     wavelength: [1.580, 1.610, 1.640]
@@ -95,10 +105,11 @@ datasets:
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        file_units: "1"
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        file_units: W m-2 um-1 sr-1
   I04:
     name: I04
     wavelength: [3.580, 3.740, 3.900]
@@ -109,10 +120,10 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        units: K
+        file_units: K
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        file_units: W m-2 um-1 sr-1
   I05:
     name: I05
     wavelength: [10.500, 11.450, 12.300]
@@ -123,10 +134,10 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        units: K
+        file_units: K
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        file_units: W m-2 um-1 sr-1
   M01:
     name: M01
     wavelength: [0.402, 0.412, 0.422]
@@ -138,10 +149,11 @@ datasets:
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        file_units: "1"
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        file_units: W m-2 um-1 sr-1
   M02:
     name: M02
     wavelength: [0.436, 0.445, 0.454]
@@ -153,10 +165,11 @@ datasets:
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        file_units: "1"
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        file_units: W m-2 um-1 sr-1
   M03:
     name: M03
     wavelength: [0.478, 0.488, 0.498]
@@ -168,10 +181,11 @@ datasets:
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        file_units: "1"
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        file_units: W m-2 um-1 sr-1
   M04:
     name: M04
     wavelength: [0.545, 0.555, 0.565]
@@ -183,10 +197,11 @@ datasets:
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        file_units: "1"
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        file_units: W m-2 um-1 sr-1
   M05:
     name: M05
     wavelength: [0.662, 0.672, 0.682]
@@ -198,10 +213,11 @@ datasets:
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        file_units: "1"
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        file_units: W m-2 um-1 sr-1
   M06:
     name: M06
     wavelength: [0.739, 0.746, 0.754]
@@ -213,10 +229,11 @@ datasets:
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        file_units: "1"
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        file_units: W m-2 um-1 sr-1
   M07:
     name: M07
     wavelength: [0.846, 0.865, 0.885]
@@ -228,10 +245,11 @@ datasets:
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        file_units: "1"
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        file_units: W m-2 um-1 sr-1
   M08:
     name: M08
     wavelength: [1.230, 1.240, 1.250]
@@ -243,10 +261,11 @@ datasets:
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        file_units: "1"
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        file_units: W m-2 um-1 sr-1
   M09:
     name: M09
     wavelength: [1.371, 1.378, 1.386]
@@ -258,10 +277,11 @@ datasets:
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        file_units: "1"
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        file_units: W m-2 um-1 sr-1
   M10:
     name: M10
     wavelength: [1.580, 1.610, 1.640]
@@ -273,10 +293,11 @@ datasets:
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        file_units: "1"
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        file_units: W m-2 um-1 sr-1
   M11:
     name: M11
     wavelength: [2.225, 2.250, 2.275]
@@ -288,10 +309,11 @@ datasets:
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
+        file_units: "1"
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        file_units: W m-2 um-1 sr-1
   M12:
     name: M12
     wavelength: [3.610, 3.700, 3.790]
@@ -302,10 +324,10 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        units: K
+        file_units: K
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        file_units: W m-2 um-1 sr-1
   M13:
     name: M13
     wavelength: [3.973, 4.050, 4.128]
@@ -316,10 +338,10 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        units: K
+        file_units: K
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        file_units: W m-2 um-1 sr-1
   M14:
     name: M14
     wavelength: [8.400, 8.550, 8.700]
@@ -330,10 +352,10 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        units: K
+        file_units: K
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        file_units: W m-2 um-1 sr-1
   M15:
     name: M15
     wavelength: [10.263, 10.763, 11.263]
@@ -344,10 +366,10 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        units: K
+        file_units: K
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        file_units: W m-2 um-1 sr-1
   M16:
     name: M16
     wavelength: [11.538, 12.013, 12.489]
@@ -358,17 +380,17 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        units: K
+        file_units: K
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        file_units: W m-2 um-1 sr-1
 
   I_SOLZ:
     name: solar_zenith_angle
     standard_name: solar_zenith_angle
     resolution: 371
     coordinates: [i_longitude, i_latitude]
-    units: degrees
+    file_units: degrees
     file_type: generic_file
     dataset_groups: [GITCO, GIMGO]
     file_key: 'All_Data/{dataset_group}_All/SolarZenithAngle'
@@ -377,7 +399,7 @@ datasets:
     standard_name: solar_azimuth_angle
     resolution: 371
     coordinates: [i_longitude, i_latitude]
-    units: degrees
+    file_units: degrees
     file_type: generic_file
     dataset_groups: [GITCO, GIMGO]
     file_key: 'All_Data/{dataset_group}_All/SolarAzimuthAngle'
@@ -386,7 +408,7 @@ datasets:
     standard_name: sensor_zenith_angle
     resolution: 371
     coordinates: [i_longitude, i_latitude]
-    units: degrees
+    file_units: degrees
     file_type: generic_file
     dataset_groups: [GITCO, GIMGO]
     file_key: 'All_Data/{dataset_group}_All/SatelliteZenithAngle'
@@ -395,7 +417,7 @@ datasets:
     standard_name: sensor_azimuth_angle
     resolution: 371
     coordinates: [i_longitude, i_latitude]
-    units: degrees
+    file_units: degrees
     file_type: generic_file
     dataset_groups: [GITCO, GIMGO]
     file_key: 'All_Data/{dataset_group}_All/SatelliteAzimuthAngle'
@@ -404,7 +426,7 @@ datasets:
     standard_name: solar_zenith_angle
     resolution: 742
     coordinates: [m_longitude, m_latitude]
-    units: degrees
+    file_units: degrees
     file_type: generic_file
     dataset_groups: [GMTCO, GMODO]
     file_key: 'All_Data/{dataset_group}_All/SolarZenithAngle'
@@ -413,7 +435,7 @@ datasets:
     standard_name: solar_azimuth_angle
     resolution: 742
     coordinates: [m_longitude, m_latitude]
-    units: degrees
+    file_units: degrees
     file_type: generic_file
     dataset_groups: [GMTCO, GMODO]
     file_key: 'All_Data/{dataset_group}_All/SolarAzimuthAngle'
@@ -422,7 +444,7 @@ datasets:
     standard_name: sensor_zenith_angle
     resolution: 742
     coordinates: [m_longitude, m_latitude]
-    units: degrees
+    file_units: degrees
     file_type: generic_file
     dataset_groups: [GMTCO, GMODO]
     file_key: 'All_Data/{dataset_group}_All/SatelliteZenithAngle'
@@ -431,7 +453,7 @@ datasets:
     standard_name: sensor_azimuth_angle
     resolution: 742
     coordinates: [m_longitude, m_latitude]
-    units: degrees
+    file_units: degrees
     file_type: generic_file
     dataset_groups: [GMTCO, GMODO]
     file_key: 'All_Data/{dataset_group}_All/SatelliteAzimuthAngle'
@@ -452,6 +474,7 @@ datasets:
     standard_name: solar_zenith_angle
     resolution: 743
     coordinates: [dnb_longitude, dnb_latitude]
+    file_units: degrees
     file_type: generic_file
     dataset_groups: [GDNBO]
     file_key: 'All_Data/{dataset_group}_All/SolarZenithAngle'
@@ -460,6 +483,7 @@ datasets:
     standard_name: lunar_zenith_angle
     resolution: 743
     coordinates: [dnb_longitude, dnb_latitude]
+    file_units: degrees
     file_type: generic_file
     dataset_groups: [GDNBO]
     file_key: 'All_Data/{dataset_group}_All/LunarZenithAngle'
@@ -468,16 +492,34 @@ datasets:
     standard_name: sensor_zenith_angle
     resolution: 743
     coordinates: [dnb_longitude, dnb_latitude]
-    units: degrees
+    file_units: degrees
     file_type: generic_file
     dataset_groups: [GDNBO]
     file_key: 'All_Data/{dataset_group}_All/SatelliteZenithAngle'
+  DNB_SAA:
+    name: dnb_solar_azimuth_angle
+    standard_name: solar_azimuth_angle
+    resolution: 743
+    coordinates: [dnb_longitude, dnb_latitude]
+    file_units: degrees
+    file_type: generic_file
+    dataset_groups: [GDNBO]
+    file_key: 'All_Data/{dataset_group}_All/SolarAzimuthAngle'
+  DNB_LAA:
+    name: dnb_lunar_azimuth_angle
+    standard_name: lunar_azimuth_angle
+    resolution: 743
+    coordinates: [dnb_longitude, dnb_latitude]
+    file_units: degrees
+    file_type: generic_file
+    dataset_groups: [GDNBO]
+    file_key: 'All_Data/{dataset_group}_All/LunarAzimuthAngle'
   DNB_SENA:
     name: dnb_satellite_azimuth_angle
     standard_name: sensor_azimuth_angle
     resolution: 743
     coordinates: [dnb_longitude, dnb_latitude]
-    units: degrees
+    file_units: degrees
     file_type: generic_file
     dataset_groups: [GDNBO]
     file_key: 'All_Data/{dataset_group}_All/SatelliteAzimuthAngle'
@@ -486,6 +528,7 @@ datasets:
     file_type: generic_file
     dataset_groups: [GDNBO]
     file_key: 'All_Data/{dataset_group}_All/MoonIllumFraction'
+    file_units: '1'
 
 file_types:
   generic_file:

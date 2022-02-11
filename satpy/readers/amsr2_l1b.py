@@ -1,13 +1,30 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Reader for AMSR2 L1B files in HDF5 format.
-"""
+# Copyright (c) 2016-2018 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Reader for AMSR2 L1B files in HDF5 format."""
 
 from satpy.readers.hdf5_utils import HDF5FileHandler
 
 
 class AMSR2L1BFileHandler(HDF5FileHandler):
+    """File handler for AMSR2 l1b."""
+
     def get_metadata(self, ds_id, ds_info):
+        """Get the metadata."""
         var_path = ds_info['file_key']
         info = getattr(self[var_path], 'attrs', {})
         info.update(ds_info)
@@ -15,7 +32,7 @@ class AMSR2L1BFileHandler(HDF5FileHandler):
             "shape": self.get_shape(ds_id, ds_info),
             "units": self[var_path + "/attr/UNIT"],
             "platform_name": self["/attr/PlatformShortName"],
-            "sensor": self["/attr/SensorShortName"],
+            "sensor": self["/attr/SensorShortName"].lower(),
             "start_orbit": int(self["/attr/StartOrbitNumber"]),
             "end_orbit": int(self["/attr/StopOrbitNumber"]),
         })
@@ -27,7 +44,7 @@ class AMSR2L1BFileHandler(HDF5FileHandler):
         var_path = ds_info['file_key']
         shape = self[var_path + '/shape']
         if ((ds_info.get('standard_name') == "longitude" or ds_info.get('standard_name') == "latitude") and
-                ds_id.resolution == 10000):
+                ds_id['resolution'] == 10000):
             return shape[0], int(shape[1] / 2)
         return shape
 
@@ -40,7 +57,7 @@ class AMSR2L1BFileHandler(HDF5FileHandler):
         data = self[var_path]
         if ((ds_info.get('standard_name') == "longitude" or
              ds_info.get('standard_name') == "latitude") and
-                ds_id.resolution == 10000):
+                ds_id['resolution'] == 10000):
             # FIXME: Lower frequency channels need CoRegistration parameters applied
             data = data[:, ::2] * self[var_path + "/attr/SCALE FACTOR"]
         else:

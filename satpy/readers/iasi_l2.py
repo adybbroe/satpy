@@ -1,36 +1,32 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2017-2020 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""IASI L2 HDF5 files."""
 
-# Copyright (c) 2017 Panu Lahtinen
-
-# Author(s):
-
-#   Panu Lahtinen <panu.lahtinen@fmi.fi
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""IASI L2 HDF5 files.
-"""
-
-import h5py
-import numpy as np
-import xarray as xr
-import dask.array as da
 import datetime as dt
 import logging
 
-from satpy.readers.file_handlers import BaseFileHandler
+import dask.array as da
+import h5py
+import numpy as np
+import xarray as xr
+
 from satpy import CHUNK_SIZE
+from satpy.readers.file_handlers import BaseFileHandler
 
 # Scan timing values taken from
 # http://oiswww.eumetsat.org/WEBOPS/eps-pg/IASI-L1/IASIL1-PG-4ProdOverview.htm
@@ -79,10 +75,10 @@ LOGGER = logging.getLogger(__name__)
 
 
 class IASIL2HDF5(BaseFileHandler):
-
     """File handler for IASI L2 HDF5 files."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Init the file handler."""
         super(IASIL2HDF5, self).__init__(filename, filename_info,
                                          filetype_info)
 
@@ -98,10 +94,12 @@ class IASIL2HDF5(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Get the start time."""
         return self.finfo['start_time']
 
     @property
     def end_time(self):
+        """Get the end time."""
         end_time = dt.datetime.combine(self.start_time.date(),
                                        self.finfo['end_time'].time())
         if end_time < self.start_time:
@@ -109,10 +107,10 @@ class IASIL2HDF5(BaseFileHandler):
         return end_time
 
     def get_dataset(self, key, info):
-        """Load a dataset"""
+        """Load a dataset."""
         with h5py.File(self.filename, 'r') as fid:
-            LOGGER.debug('Reading %s.', key.name)
-            if key.name in DSET_NAMES:
+            LOGGER.debug('Reading %s.', key['name'])
+            if key['name'] in DSET_NAMES:
                 m_data = read_dataset(fid, key)
             else:
                 m_data = read_geo(fid, key)
@@ -123,15 +121,15 @@ class IASIL2HDF5(BaseFileHandler):
 
 
 def read_dataset(fid, key):
-    """Read dataset"""
-    dsid = DSET_NAMES[key.name]
+    """Read dataset."""
+    dsid = DSET_NAMES[key['name']]
     dset = fid["/PWLR/" + dsid]
     if dset.ndim == 3:
         dims = ['y', 'x', 'level']
     else:
         dims = ['y', 'x']
-    data = xr.DataArray(da.from_array(dset.value, chunks=CHUNK_SIZE),
-                        name=key.name, dims=dims).astype(np.float32)
+    data = xr.DataArray(da.from_array(dset[()], chunks=CHUNK_SIZE),
+                        name=key['name'], dims=dims).astype(np.float32)
     data = xr.where(data > 1e30, np.nan, data)
 
     dset_attrs = dict(dset.attrs)
@@ -142,19 +140,19 @@ def read_dataset(fid, key):
 
 def read_geo(fid, key):
     """Read geolocation and related datasets."""
-    dsid = GEO_NAMES[key.name]
+    dsid = GEO_NAMES[key['name']]
     add_epoch = False
-    if "time" in key.name:
-        days = fid["/L1C/" + dsid["day"]].value
-        msecs = fid["/L1C/" + dsid["msec"]].value
+    if "time" in key['name']:
+        days = fid["/L1C/" + dsid["day"]][()]
+        msecs = fid["/L1C/" + dsid["msec"]][()]
         data = _form_datetimes(days, msecs)
         add_epoch = True
         dtype = np.float64
     else:
-        data = fid["/L1C/" + dsid].value
+        data = fid["/L1C/" + dsid][()]
         dtype = np.float32
     data = xr.DataArray(da.from_array(data, chunks=CHUNK_SIZE),
-                        name=key.name, dims=['y', 'x']).astype(dtype)
+                        name=key['name'], dims=['y', 'x']).astype(dtype)
 
     if add_epoch:
         data.attrs['sensing_time_epoch'] = EPOCH
@@ -164,7 +162,6 @@ def read_geo(fid, key):
 
 def _form_datetimes(days, msecs):
     """Calculate seconds since EPOCH from days and milliseconds for each of IASI scan."""
-
     all_datetimes = []
     for i in range(days.size):
         day = int(days[i])
@@ -173,7 +170,7 @@ def _form_datetimes(days, msecs):
         for j in range(int(VALUES_PER_SCAN_LINE / 4)):
             usec = 1000 * (j * VIEW_TIME_ADJUSTMENT + msec)
             delta = (dt.timedelta(days=day, microseconds=usec))
-            for k in range(4):
+            for _k in range(4):
                 scanline_datetimes.append(delta.total_seconds())
         all_datetimes.append(scanline_datetimes)
 

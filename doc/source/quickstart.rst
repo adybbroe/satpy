@@ -127,38 +127,63 @@ To access the loaded data use the wavelength or name:
 
     >>> print(global_scene[0.6])
 
-Visualizing data                                                                                    
-================                                                                                    
+For more information on loading datasets by resolution, calibration, or other
+advanced loading methods see the :doc:`readers` documentation.
 
-To visualize loaded data in a pop-up window:                                                        
-                                                                                                    
-    >>> global_scene.show(0.6)                                                                      
-                                                                                                    
+
+Calculating measurement values and navigation coordinates
+=========================================================
+
+Once loaded, measurement values can be calculated from a DataArray within a scene, using .values to get a fully calculated numpy array:
+
+    >>> vis006 = global_scene["VIS006"]
+    >>> vis006_meas = vis006.values
+
+Note that for very large images, such as half-kilometer geostationary imagery, calculated measurement arrays may require multiple gigabytes of memory; using deferred computation and/or subsetting of datasets may be preferred in such cases.
+
+The 'area' attribute of the DataArray, if present, can be converted to latitude and longitude arrays. For some instruments (typically polar-orbiters), the get_lonlats() may result in arrays needing an additional .compute() or .values extraction.
+
+    >>> vis006_lon, vis006_lat = vis006.attrs['area'].get_lonlats()
+
+
+Visualizing data
+================
+
+To visualize loaded data in a pop-up window:
+
+    >>> global_scene.show(0.6)
+
 Alternatively if working in a Jupyter notebook the scene can be converted to
-a `geoviews <http://geo.holoviews.org/index.html>`_ object using the
+a `geoviews <https://geoviews.org>`_ object using the
 :meth:`~satpy.scene.Scene.to_geoviews` method. The geoviews package is not a
 requirement of the base satpy install so in order to use this feature the user
 needs to install the geoviews package himself.
-                                                                                                    
-    >>> import holoviews as hv                                                                      
-    >>> import geoviews as gv                                                                       
-    >>> import geoviews.feature as gf                                                               
-    >>> gv.extension("bokeh", "matplotlib")                                                         
-    >>> %opts QuadMesh Image [width=600 height=400 colorbar=True] Feature [apply_ranges=False]      
-    >>> %opts Image QuadMesh (cmap='RdBu_r')                                                        
+
+    >>> import holoviews as hv
+    >>> import geoviews as gv
+    >>> import geoviews.feature as gf
+    >>> gv.extension("bokeh", "matplotlib")
+    >>> %opts QuadMesh Image [width=600 height=400 colorbar=True] Feature [apply_ranges=False]
+    >>> %opts Image QuadMesh (cmap='RdBu_r')
     >>> gview = global_scene.to_geoviews(vdims=[0.6])
-    >>> gview[::5,::5] * gf.coastline * gf.borders                                                  
-                                                                                                     
-Creating new datasets                                                                               
-=====================                                                                               
+    >>> gview[::5,::5] * gf.coastline * gf.borders
+
+Creating new datasets
+=====================
 
 Calculations based on loaded datasets/channels can easily be assigned to a new dataset:
 
     >>> global_scene["ndvi"] = (global_scene[0.8] - global_scene[0.6]) / (global_scene[0.8] + global_scene[0.6])
     >>> global_scene.show("ndvi")
 
-For more information on loading datasets by resolution, calibration, or other
-advanced loading methods see the :doc:`readers` documentation.
+When doing calculations Xarray, by default, will drop all attributes so attributes need to be
+copied over by hand. The :func:`~satpy.dataset.combine_metadata` function can assist with this task.
+Assigning additional custom metadata is also possible.
+
+    >>> from satpy.dataset import combine_metadata
+    >>> scene['new_band'] = scene[0.8] / scene[0.6]
+    >>> scene['new_band'].attrs = combine_metadata(scene[0.8], scene[0.6])
+    >>> scene['new_band'].attrs['some_other_key'] = 'whatever_value_you_want'
 
 Generating composites
 =====================
@@ -172,13 +197,13 @@ To get a list of all available composites for the current scene:
     >>> global_scene.available_composite_names()
     ['overview_sun',
      'airmass',
-     'natural',
+     'natural_color',
      'night_fog',
      'overview',
      'green_snow',
      'dust',
      'fog',
-     'natural_sun',
+     'natural_color_raw',
      'cloudtop',
      'convection',
      'ash']
@@ -237,6 +262,27 @@ output format and to provide the best looking image. For more information
 on saving datasets and customizing enhancements see the documentation on
 :doc:`writers`.
 
+
+Slicing and subsetting scenes
+=============================
+
+Array slicing can be done at the scene level in order to get subsets with consistent navigation throughout. Note that this does not take into account scenes that may include channels at multiple resolutions, i.e. index slicing does not account for dataset spatial resolution.
+
+  >>> scene_slice = global_scene[2000:2004, 2000:2004]
+  >>> vis006_slice = scene_slice['VIS006']
+  >>> vis006_slice_meas = vis006_slice.values
+  >>> vis006_slice_lon, vis006_slice_lat = vis006_slice.attrs['area'].get_lonlats()
+
+To subset multi-resolution data consistently, use the :meth:`~satpy.scene.Scene.crop` method.
+
+  >>> scene_llbox = global_scene.crop(ll_bbox=(-4.0, -3.9, 3.9, 4.0))
+  >>> vis006_llbox = scene_llbox['VIS006']
+  >>> vis006_llbox_meas = vis006_llbox.values
+  >>> vis006_llbox_lon, vis006_llbox_lat = vis006_llbox.attrs['area'].get_lonlats()
+
+
+.. _troubleshooting:
+
 Troubleshooting
 ===============
 
@@ -245,9 +291,9 @@ of satpy and its dependencies are installed. Satpy drags in a few packages as
 dependencies per default, but each reader and writer has it's own dependencies
 which can be unfortunately easy to miss when just doing a regular `pip install`.
 To check the missing dependencies for the readers and writers, a utility
-function called `check_satpy` can be used:
+function called :func:`~satpy.utils.check_satpy` can be used:
 
-  >>> from satpy.config import check_satpy
+  >>> from satpy.utils import check_satpy
   >>> check_satpy()
 
 Due to the way Satpy works, producing as many datasets as possible, there are

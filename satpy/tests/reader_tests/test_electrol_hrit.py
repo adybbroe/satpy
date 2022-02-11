@@ -1,47 +1,41 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2019 Simon Proud
-# Author(s):
+# Copyright (c) 2019 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""The HRIT electrol reader tests package."""
 
-#   Simon Proud <simon.proud@physics.ox.ac.uk>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""The HRIT electrol reader tests package.
-"""
-
-import sys
 import datetime
-import numpy as np
+import unittest
+from unittest import mock
+
 import dask.array as da
+import numpy as np
 from xarray import DataArray
 
-from satpy.readers.electrol_hrit import (recarray2dict, prologue,
-                                         HRITGOMSPrologueFileHandler,
-                                         HRITGOMSEpilogueFileHandler,
-                                         HRITGOMSFileHandler,
-                                         satellite_status,
-                                         image_acquisition,
-                                         epilogue)
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from satpy.readers.electrol_hrit import (
+    HRITGOMSEpilogueFileHandler,
+    HRITGOMSFileHandler,
+    HRITGOMSPrologueFileHandler,
+    epilogue,
+    image_acquisition,
+    prologue,
+    recarray2dict,
+    satellite_status,
+)
+from satpy.tests.utils import make_dataid
 
 # Simplify some type selections
 f64_t = np.float64
@@ -50,10 +44,10 @@ u32_t = np.uint32
 
 
 class Testrecarray2dict(unittest.TestCase):
-    ''' Test the function that converts numpy record arrays into
-        dicts for use within SatPy.
-    '''
+    """Test the function that converts numpy record arrays into dicts for use within SatPy."""
+
     def test_fun(self):
+        """Test record array."""
         inner_st = np.dtype([('test_str', '<S20'), ('test_int', 'i4')])
         outer_st = np.dtype([('test_sec', inner_st), ('test_flt', 'f4')])
 
@@ -68,6 +62,7 @@ class Testrecarray2dict(unittest.TestCase):
 
 class TestHRITGOMSProFileHandler(unittest.TestCase):
     """Test the HRIT Prologue FileHandler."""
+
     # Below are variable definitions used in testing the prologue reader.
     # These values are taken from a typical ELECTRO-L HRIT scene
     test_sat_status = {'TagType': 2,
@@ -93,7 +88,7 @@ class TestHRITGOMSProFileHandler(unittest.TestCase):
     @mock.patch('satpy.readers.electrol_hrit.np.fromfile')
     @mock.patch('satpy.readers.electrol_hrit.HRITFileHandler.__init__')
     def test_init(self, new_fh_init, fromfile):
-        """Setup the hrit file handler for testing."""
+        """Set up the hrit file handler for testing."""
         new_fh_init.return_value.filename = 'filename'
         HRITGOMSPrologueFileHandler.filename = 'filename'
         HRITGOMSPrologueFileHandler.mda = {'total_header_length': 1}
@@ -132,12 +127,12 @@ class TestHRITGOMSProFileHandler(unittest.TestCase):
 
 
 class TestHRITGOMSEpiFileHandler(unittest.TestCase):
-    '''Test the HRIT Epilogue FileHandler.'''
+    """Test the HRIT Epilogue FileHandler."""
 
     @mock.patch('satpy.readers.electrol_hrit.np.fromfile')
     @mock.patch('satpy.readers.electrol_hrit.HRITFileHandler.__init__')
     def test_init(self, new_fh_init, fromfile):
-        """Setup the hrit file handler for testing."""
+        """Set up the hrit file handler for testing."""
         new_fh_init.return_value.filename = 'filename'
         HRITGOMSEpilogueFileHandler.filename = 'filename'
         HRITGOMSEpilogueFileHandler.mda = {'total_header_length': 1}
@@ -170,33 +165,41 @@ class TestHRITGOMSEpiFileHandler(unittest.TestCase):
                 epi['GeometricProcessing']['TimeProcessing'], np.ones(10))
 
 
-class resser:
-    attrs = {}
-    calibration = 'counts'
-
-
 @mock.patch('satpy.readers.electrol_hrit.HRITGOMSFileHandler.__init__', return_value=None)
 @mock.patch('satpy.readers.electrol_hrit.HRITFileHandler.get_dataset', return_value={})
 class TestHRITGOMSFileHandler(unittest.TestCase):
-    '''A test of the ELECTRO-L main file handler functions'''
+    """A test of the ELECTRO-L main file handler functions."""
 
-    @mock.patch('satpy.readers.electrol_hrit.HRITGOMSFileHandler.calibrate', return_value=resser())
-    def test_get_dataset(self, *mocks):
+    @mock.patch('satpy.readers.electrol_hrit.HRITGOMSFileHandler.calibrate')
+    def test_get_dataset(self, calibrate_mock, *mocks):
+        """Test get dataset."""
+        key = make_dataid(name='CH1', calibration='counts')
+        fake_array = mock.MagicMock()
+        fake_array.attrs = dict()
+        calibrate_mock.return_value = fake_array
         fh = HRITGOMSFileHandler()
         fh.platform_name = 'Electro'
-        fh.mda = {'projection_parameters': {'SSP_longitude': 0.0}}
-        key = 0
+        fh.mda = {'projection_parameters': {'SSP_longitude': 0.0},
+                  'orbital_parameters': {'satellite_nominal_longitude': 0.5}}
         info = {'units': 'm', 'standard_name': 'electro', 'wavelength': 5.0}
-        output = fh.get_dataset(resser(), info)
+        output = fh.get_dataset(key, info)
 
         # Check that 'calibrate' is called
-        mocks[1].assert_called()
+        calibrate_mock.assert_called()
 
         # Check that the correct attributes are returned
-        for key in info:
-            self.assertEqual(output.attrs[key], info[key])
+        attrs_exp = info.copy()
+        attrs_exp.update({'orbital_parameters': {'satellite_nominal_longitude': 0.5,
+                                                 'satellite_nominal_latitude': 0.0,
+                                                 'projection_longitude': 0.0,
+                                                 'projection_latitude': 0.0,
+                                                 'projection_altitude': 35785831.00},
+                          'platform_name': 'Electro',
+                          'sensor': 'msu-gs'})
+        assert dict(output.attrs, **attrs_exp) == output.attrs
 
     def test_calibrate(self, *mocks):
+        """Test calibrate."""
         lut = np.linspace(1e6, 1.6e6, num=1024).astype(np.int32)
         lut = np.tile(lut, (10, 1))
         fh = HRITGOMSFileHandler()
@@ -225,7 +228,7 @@ class TestHRITGOMSFileHandler(unittest.TestCase):
         self.assertTrue(np.allclose(out.values, lut[0, counts]/1000.))
 
     def test_get_area_def(self, *mocks):
-
+        """Test get_area_def."""
         example_area_ext = (-5566748.0802, -1854249.1809,
                             5570748.6178, 2000.2688)
 
@@ -238,20 +241,3 @@ class TestHRITGOMSFileHandler(unittest.TestCase):
 
         self.assertTrue(np.allclose(np.array(area.area_extent),
                         np.array(example_area_ext)))
-
-
-def suite():
-    """The test suite for test_scene.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(Testrecarray2dict))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHRITGOMSProFileHandler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHRITGOMSEpiFileHandler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHRITGOMSFileHandler))
-
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

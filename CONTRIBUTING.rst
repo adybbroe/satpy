@@ -106,12 +106,23 @@ After talking to the Satpy developers any additional work like code or
 documentation changes can be provided as a GitHub
 `Pull Request <https://help.github.com/articles/creating-a-pull-request/>`_.
 
+To make sure that your code complies with the pytroll python standard, you can
+run the `flake8 <http://flake8.pycqa.org/en/latest/>`_ linter on your changes
+before you submit them, or even better install a pre-commit hook that runs the
+style check for you. To this aim, we provide a configuration file for the
+`pre-commit <http://pre-commit.com>`_ tool, that you can install with eg::
+
+  pip install pre-commit
+  pre-commit install
+
+running from your base satpy directory. This will automatically check code style for every commit.
+
 Code of Conduct
 ===============
 
 Satpy follows the same code of conduct as the PyTroll project. For reference
 it is copied to this repository in
-`CODE_OF_CONDUCT.md <https://github.com/pytroll/satpy/blob/master/CODE_OF_CONDUCT.md>`_.
+`CODE_OF_CONDUCT.md <https://github.com/pytroll/satpy/blob/main/CODE_OF_CONDUCT.md>`_.
 
 As stated in the PyTroll home page, this code of conduct applies to the
 project space (GitHub) as well as the public space online and offline when
@@ -134,4 +145,4 @@ determined by the maintainers and may include one or more of the following:
 - Temporary or permanent ban from online communication (Slack, mailing list, etc)
 
 For details see the official
-`code of conduct document <https://github.com/pytroll/satpy/blob/master/CODE_OF_CONDUCT.md>`_.
+`code of conduct document <https://github.com/pytroll/satpy/blob/main/CODE_OF_CONDUCT.md>`_.

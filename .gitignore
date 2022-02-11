@@ -11,6 +11,7 @@ dist
 build
 doc/build
 eggs
+*.eggs
 parts
 bin
 var
@@ -27,9 +28,13 @@ pip-log.txt
 .coverage
 .tox
 nosetests.xml
+htmlcov
 
 #Translations
 *.mo
+
+#Sphinx
+doc/source/_build/*
 
 #Mr Developer
 .mr.developer.cfg
@@ -64,3 +69,8 @@ nosetests.xml
 # vi / vim swp files
 *.swp
 .DS_STORE
+
+# setuptools_scm files
+# this should be generated automatically when installed
+satpy/version.py
+doc/source/api/*.rst

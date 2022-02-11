@@ -3,7 +3,7 @@ Satpy's Documentation
 =====================
 
 Satpy is a python library for reading, manipulating, and writing data from
-remote-sensing earth-observing meteorological satellite instruments. Satpy
+remote-sensing earth-observing satellite instruments. Satpy
 provides users with readers that convert geophysical parameters from various
 file formats to the common Xarray :class:`~xarray.DataArray` and
 :class:`~xarray.Dataset` classes for easier interoperability with other
@@ -20,17 +20,17 @@ files. Satpy also allows users to resample data to geographic projected grids
 The Satpy library acts as a high-level abstraction layer on top of other
 libraries maintained by the Pytroll group including:
 
-- `Pyresample <http://pyresample.readthedocs.io/en/latest/>`_
-- `PySpectral <https://pyspectral.readthedocs.io/en/develop/>`_
-- `Trollimage <http://trollimage.readthedocs.io/en/latest/>`_
-- `Pycoast <https://pycoast.readthedocs.io/en/latest/>`_
-- `Pydecorate <https://pydecorate.readthedocs.io/en/latest/>`_
+- `pyresample <http://pyresample.readthedocs.io/en/latest/>`_
+- `pyspectral <https://pyspectral.readthedocs.io/en/latest/>`_
+- `trollimage <http://trollimage.readthedocs.io/en/latest/>`_
+- `pycoast <https://pycoast.readthedocs.io/en/latest/>`_
+- `pydecorate <https://pydecorate.readthedocs.io/en/latest/>`_
 - `python-geotiepoints <https://python-geotiepoints.readthedocs.io/en/latest/>`_
 - `pyninjotiff <https://github.com/pytroll/pyninjotiff>`_
 
 Go to the Satpy project_ page for source code and downloads.
 
-Satpy is designed to be easily extendable to support any meteorological
+Satpy is designed to be easily extendable to support any earth observation
 satellite by the creation of plugins (readers, compositors, writers, etc).
 The table at the bottom of this page shows the input formats supported by
 the base Satpy installation.
@@ -40,6 +40,10 @@ the base Satpy installation.
     Satpy's interfaces are not guaranteed stable and may change until version
     1.0 when backwards compatibility will be a main focus.
 
+.. versionchanged:: 0.20.0
+
+    Dropped Python 2 support.
+
 .. _project: http://github.com/pytroll/satpy
 
 .. toctree::
@@ -47,8 +51,9 @@ the base Satpy installation.
 
     overview
     install
+    config
     data_download
-    examples
+    examples/index
     quickstart
     readers
     composites
@@ -61,8 +66,10 @@ the base Satpy installation.
 .. toctree::
     :maxdepth: 1
 
-    Satpy API <api/satpy>
+    Satpy API <api/modules>
     faq
+    Release Notes <https://github.com/pytroll/satpy/blob/main/CHANGELOG.md>
+    Security Policy <https://github.com/pytroll/satpy/blob/main/SECURITY.md>
 
 .. _reader_table:
 
@@ -78,16 +85,29 @@ the base Satpy installation.
       - Nominal
     * - MSG (Meteosat 8 to 11) SEVIRI data in native format
       - `seviri_l1b_native`
-      - HRV full disk data cannot be remapped.
+      - Nominal.
     * - MSG (Meteosat 8 to 11) SEVIRI data in netCDF format
       - `seviri_l1b_nc`
       - | HRV channel not supported, incomplete metadata
         | in the files. EUMETSAT has been notified.
+    * - MSG (Meteosat 8 to 11) L2 products in BUFR format
+      - `seviri_l2_bufr`
+      - AMV BUFR products not supported yet.
+    * - MSG (Meteosat 8 to 11) L2 products in GRIB2 format
+      - `seviri_l2_grib`
+      - In development, CLM, OCA and FIR products supported
+    * - MFG (Meteosat 2 to 7) MVIRI data in netCDF format (FIDUCEO FCDR)
+      - `mviri_l1b_fiduceo_nc`
+      - Beta
     * - Himawari 8 and 9 AHI data in HSD format
       - `ahi_hsd`
       - Nominal
     * - Himawari 8 and 9 AHI data in HRIT format
       - `ahi_hrit`
+      - Nominal
+    * - Himawari 8 and 9 AHI data in Gridded binary format,
+        from http://www.cr.chiba-u.jp/databases/GEO/H8_9/FD/index_jp.html
+      - `ahi_l1b_gridded_bin`
       - Nominal
     * - MTSAT-1R JAMI data in JMA HRIT format
       - `jami_hrit`
@@ -95,9 +115,12 @@ the base Satpy installation.
     * - MTSAT-2 Imager data in JMA HRIT format
       - `mtsat2-imager_hrit`
       - Beta
-    * - GOES 16 imager data in netcdf format
+    * - GOES-R imager data in netcdf format
       - `abi_l1b`
       - Nominal
+    * - NOAA GOES-R ABI L2+ products in netcdf format
+      - `abi_l2_nc`
+      - Beta
     * - GOES 11 to 15 imager data in HRIT format
       - `goes-imager_hrit`
       - Nominal
@@ -122,9 +145,9 @@ the base Satpy installation.
     * - GCOM-W1 AMSR2 data in HDF5 format
       - `amsr2_l1b`
       - Nominal
-    * - MTG FCI Level 1C data for Full Disk High Spectral Imagery (FDHSI) in netcdf format
-      - `fci_l1c_fdhsi`
-      - In development
+    * - MTG FCI Level 1C data in NetCDF format
+      - `fci_l1c_nc`
+      - In development (beta for FDHSI files, HRFI not supported yet)
     * - Callipso Caliop Level 2 Cloud Layer data (v3) in EOS-hdf4 format
       - `caliop_l2_cloud`
       - In development
@@ -198,6 +221,76 @@ the base Satpy installation.
       - Beta
     * - MERSI-2 L1B data in HDF5 format
       - `mersi2_l1b`
+      - Beta
+    * - FY-4A AGRI L1 data in HDF5 format
+      - `agri_l1`
+      - Beta
+    * - Vaisala Global Lightning Dataset GLD360 data in ASCII format
+      - `vaisala_gld360`
+      - Beta
+    * - TROPOMI L2 data in NetCDF4 format
+      - `tropomi_l2`
+      - Beta
+    * - Hydrology SAF products in GRIB format
+      - `hsaf_grib`
+      - | Beta
+        | Only the h03, h03b, h05 and h05B products are supported at-present
+    * - GEO-KOMPSAT-2 AMI L1B data in NetCDF4 format
+      - `ami_l1b`
+      - Beta
+    * - GOES-R GLM Grided Level 2 in NetCDF4 format
+      - `glm_l2`
+      - Beta
+    * - Sentinel-3 SLSTR SST data in NetCDF4 format
+      - `slstr_l2`
+      - Beta
+    * - IASI level 2 SO2 in BUFR format
+      - `iasi_l2_so2_bufr`
+      - Beta
+    * - HY-2B Scatterometer level 2b data in HDF5 format from both EUMETSAT and NSOAS
+      - `hy2_scat_l2b_h5`
+      - Beta
+    * - OMPS EDR data in HDF5 format
+      - `omps_edr`
+      - Beta
+    * - VII Level 2 in NetCDF4 format
+      - `vii_l2_nc`
+      - Beta
+    * - VII Level 1b in NetCDF4 format
+      - `vii_l1b_nc`
+      - Beta
+    * - MTG FCI Level 2 in NetCDF4 format
+      - `fci_l2_nc`
+      - Beta
+    * - SMOS level 2 wind data in NetCDF4 format
+      - `smos_l2_wind`
+      - Beta
+    * - AMSR2 level 2 wind data in HDF5 format
+      - `amsr2_l2`
+      - Beta
+    * - GPM IMERG level 3 precipitation data in HDF5 format
+      - `gpm_imerg`
+      - Nominal
+    * - AMSR2 level 2 GAASP in NetCDF4 format
+      - `amsr2_l2_gaasp`
+      - Beta
+    * - MiRS level 2 Precipitation and Surface Products (IMG) in NetCDF4 format
+      - `mirs`
+      - Beta
+    * - MIMIC Total Precipitable Water Product Reader in NetCDF format
+      - mimicTPW2_comp
+      - Beta
+    * - SEADAS L2 Chlorphyll A product in HDF4 format
+      - seadas_l2
+      - Beta
+    * - AAPP L1C MHS format
+      - `aapp_mhs_l1c`
+      - Nominal
+    * - AAPP L1C AMSU-B format
+      - `aapp_amsub_l1c`
+      - Beta
+    * - Arctica-M (N1) MSU-GS/A data in HDF5 format
+      - `msu_gsa_l1b`
       - Beta
 
 Indices and tables

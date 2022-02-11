@@ -1,42 +1,42 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
 # Copyright (c) 2011-2019 Satpy developers
 #
-# This file is part of Satpy.
+# This file is part of satpy.
 #
-# Satpy is free software: you can redistribute it and/or modify it under the
+# satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
 #
-# Satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along with
-# Satpy.  If not, see <http://www.gnu.org/licenses/>.
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Interface to VIIRS L1B format."""
 
-"""Interface to VIIRS L1B format
-
-"""
 import logging
 from datetime import datetime
+
 import numpy as np
+
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
 
 LOG = logging.getLogger(__name__)
 
 
 class VIIRSL1BFileHandler(NetCDF4FileHandler):
-    """VIIRS L1B File Reader
-    """
+    """VIIRS L1B File Reader."""
 
     def _parse_datetime(self, datestr):
+        """Parse datetime."""
         return datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%S.000Z")
 
     @property
     def start_orbit_number(self):
+        """Get start orbit number."""
         try:
             return int(self['/attr/orbit_number'])
         except KeyError:
@@ -44,6 +44,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
 
     @property
     def end_orbit_number(self):
+        """Get end orbit number."""
         try:
             return int(self['/attr/orbit_number'])
         except KeyError:
@@ -51,6 +52,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
 
     @property
     def platform_name(self):
+        """Get platform name."""
         try:
             res = self.get('/attr/platform',
                            self.filename_info['platform_shortname'])
@@ -67,6 +69,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
 
     @property
     def sensor_name(self):
+        """Get sensor name."""
         res = self['/attr/instrument']
         if isinstance(res, np.ndarray):
             return str(res.astype(str))
@@ -74,6 +77,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             return res
 
     def adjust_scaling_factors(self, factors, file_units, output_units):
+        """Adjust scaling factors."""
         if factors is None or factors[0] is None:
             factors = [1, 0]
         if file_units == output_units:
@@ -95,15 +99,18 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             return factors
 
     def get_shape(self, ds_id, ds_info):
-        var_path = ds_info.get('file_key', 'observation_data/{}'.format(ds_id.name))
+        """Get shape."""
+        var_path = ds_info.get('file_key', 'observation_data/{}'.format(ds_id['name']))
         return self.get(var_path + '/shape', 1)
 
     @property
     def start_time(self):
+        """Get start time."""
         return self._parse_datetime(self['/attr/time_coverage_start'])
 
     @property
     def end_time(self):
+        """Get end time."""
         return self._parse_datetime(self['/attr/time_coverage_end'])
 
     def _get_dataset_file_units(self, dataset_id, ds_info, var_path):
@@ -114,7 +121,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             if file_units == "none":
                 file_units = "1"
 
-        if dataset_id.calibration == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
+        if dataset_id.get('calibration') == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
             rad_units_path = var_path + '/attr/radiance_units'
             if rad_units_path in self:
                 if file_units is None:
@@ -129,7 +136,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         return file_units
 
     def _get_dataset_valid_range(self, dataset_id, ds_info, var_path):
-        if dataset_id.calibration == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
+        if dataset_id.get('calibration') == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
             rad_units_path = var_path + '/attr/radiance_units'
             if rad_units_path in self:
                 # we are getting a reflectance band but we want the radiance values
@@ -166,7 +173,8 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         return valid_min, valid_max, scale_factor, scale_offset
 
     def get_metadata(self, dataset_id, ds_info):
-        var_path = ds_info.get('file_key', 'observation_data/{}'.format(dataset_id.name))
+        """Get metadata."""
+        var_path = ds_info.get('file_key', 'observation_data/{}'.format(dataset_id['name']))
         shape = self.get_shape(dataset_id, ds_info)
         file_units = self._get_dataset_file_units(dataset_id, ds_info, var_path)
 
@@ -191,12 +199,12 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         return i
 
     def get_dataset(self, dataset_id, ds_info):
-        var_path = ds_info.get('file_key', 'observation_data/{}'.format(dataset_id.name))
+        """Get dataset."""
+        var_path = ds_info.get('file_key', 'observation_data/{}'.format(dataset_id['name']))
         metadata = self.get_metadata(dataset_id, ds_info)
-        shape = metadata['shape']
 
         valid_min, valid_max, scale_factor, scale_offset = self._get_dataset_valid_range(dataset_id, ds_info, var_path)
-        if dataset_id.calibration == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
+        if dataset_id.get('calibration') == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
             data = self[var_path]
         elif ds_info.get('units') == '%':
             data = self[var_path]
@@ -206,12 +214,10 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             lut_var_path = ds_info.get('lut', var_path + '_brightness_temperature_lut')
             data = self[var_path]
             # we get the BT values from a look up table using the scaled radiance integers
-            index_arr = data.data.astype(np.int)
+            index_arr = data.data.astype(int)
             coords = data.coords
             data.data = self[lut_var_path].data[index_arr.ravel()].reshape(data.shape)
             data = data.assign_coords(**coords)
-        elif shape == 1:
-            data = self[var_path]
         else:
             data = self[var_path]
         data.attrs.update(metadata)

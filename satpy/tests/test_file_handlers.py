@@ -1,45 +1,37 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2017
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-"""test file handler baseclass.
-"""
+# Copyright (c) 2017 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""test file handler baseclass."""
 
 import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from unittest import mock
 
 import numpy as np
+import pytest
 
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.tests.utils import FakeFileHandler
 
 
 class TestBaseFileHandler(unittest.TestCase):
     """Test the BaseFileHandler."""
 
     def setUp(self):
-        """Setup the test."""
+        """Set up the test."""
         self._old_set = BaseFileHandler.__abstractmethods__
         BaseFileHandler._abstractmethods__ = set()
         self.fh = BaseFileHandler(
@@ -106,16 +98,79 @@ class TestBaseFileHandler(unittest.TestCase):
         self.assertTupleEqual(sdef.call_args[1]['lats'].shape, (2, 5))
         self.assertEqual(sdef.return_value.name, 'area1_area2')
 
+    def test_combine_orbital_parameters(self):
+        """Combine orbital parameters."""
+        info1 = {'orbital_parameters': {'projection_longitude': 1,
+                                        'projection_latitude': 1,
+                                        'projection_altitude': 1,
+                                        'satellite_nominal_longitude': 1,
+                                        'satellite_nominal_latitude': 1,
+                                        'satellite_actual_longitude': 1,
+                                        'satellite_actual_latitude': 1,
+                                        'satellite_actual_altitude': 1,
+                                        'nadir_longitude': 1,
+                                        'nadir_latitude': 1,
+                                        'only_in_1': False}}
+        info2 = {'orbital_parameters': {'projection_longitude': 2,
+                                        'projection_latitude': 2,
+                                        'projection_altitude': 2,
+                                        'satellite_nominal_longitude': 2,
+                                        'satellite_nominal_latitude': 2,
+                                        'satellite_actual_longitude': 2,
+                                        'satellite_actual_latitude': 2,
+                                        'satellite_actual_altitude': 2,
+                                        'nadir_longitude': 2,
+                                        'nadir_latitude': 2,
+                                        'only_in_2': True}}
+        exp = {'orbital_parameters': {'projection_longitude': 1.5,
+                                      'projection_latitude': 1.5,
+                                      'projection_altitude': 1.5,
+                                      'satellite_nominal_longitude': 1.5,
+                                      'satellite_nominal_latitude': 1.5,
+                                      'satellite_actual_longitude': 1.5,
+                                      'satellite_actual_latitude': 1.5,
+                                      'satellite_actual_altitude': 1.5,
+                                      'nadir_longitude': 1.5,
+                                      'nadir_latitude': 1.5,
+                                      'only_in_1': False,
+                                      'only_in_2': True}}
+        res = self.fh.combine_info([info1, info2])
+        self.assertDictEqual(res, exp)
+
+        # Identity
+        self.assertEqual(self.fh.combine_info([info1]), info1)
+
+        # Empty
+        self.fh.combine_info([{}])
+
+    def test_file_is_kept_intact(self):
+        """Test that the file object passed (string, path, or other) is kept intact."""
+        open_file = mock.MagicMock()
+        bfh = BaseFileHandler(open_file, {'filename_info': 'bla'}, 'filetype_info')
+        assert bfh.filename == open_file
+
+        from pathlib import Path
+        filename = Path('/bla/bla.nc')
+        bfh = BaseFileHandler(filename, {'filename_info': 'bla'}, 'filetype_info')
+        assert isinstance(bfh.filename, Path)
+
     def tearDown(self):
         """Tear down the test."""
         BaseFileHandler.__abstractmethods__ = self._old_set
 
 
-def suite():
-    """The test suite for test_projector.
-    """
-    loader = unittest.TestLoader()
-    my_suite = unittest.TestSuite()
-    my_suite.addTest(loader.loadTestsFromTestCase(TestBaseFileHandler))
-
-    return my_suite
+@pytest.mark.parametrize(
+    ("file_type", "ds_file_type", "exp_result"),
+    [
+        ("fake1", "fake1", True),
+        ("fake1", ["fake1"], True),
+        ("fake1", ["fake1", "fake2"], True),
+        ("fake1", ["fake2"], None),
+        ("fake1", "fake2", None),
+        ("fake1", "fake1_with_suffix", None),
+    ]
+)
+def test_file_type_match(file_type, ds_file_type, exp_result):
+    """Test that file type matching uses exactly equality."""
+    fh = FakeFileHandler("some_file.txt", {}, {"file_type": file_type})
+    assert fh.file_type_matches(ds_file_type) is exp_result
