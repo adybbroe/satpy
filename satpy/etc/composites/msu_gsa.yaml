@@ -12,9 +12,11 @@ composites:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - name: C01
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
+      #modifiers: [sunz_corrected]
     - name: C03
-      modifiers: [sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
+      #modifiers: [sunz_corrected]
     - name: C09
     standard_name: overview
   msugsa_color:
@@ -43,6 +45,15 @@ composites:
       - 10.8
       - 11.9
       - 10.8
+
+  overview_with_night_ir:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: overview_with_night_ir
+    lim_low: 87.0
+    lim_high: 90.0
+    prerequisites:
+      - overview
+      - night_ir_with_background
 
   day_color_with_night_ir:
     compositor: !!python/name:satpy.composites.DayNightCompositor
